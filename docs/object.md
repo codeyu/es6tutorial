@@ -13,7 +13,7 @@ baz // {foo: "bar"}
 var baz = {foo: foo};
 ```
 
-上面代码表明，ES6允许在对象之中，只写属性名，不写属性值。这时，属性值等于属性名所代表的变量。下面是另一个例子。
+上面代码表明，ES6允许在对象之中，直接写变量。这时，属性名为变量名, 属性值为变量的值。下面是另一个例子。
 
 ```javascript
 function f(x, y) {
@@ -163,7 +163,7 @@ obj['a' + 'bc'] = 123;
 
 上面代码的方法一是直接用标识符作为属性名，方法二是用表达式作为属性名，这时要将表达式放在方括号之内。
 
-但是，如果使用字面量方式定义对象（使用大括号），在ES5中只能使用方法一（标识符）定义属性。
+但是，如果使用字面量方式定义对象（使用大括号），在 ES5 中只能使用方法一（标识符）定义属性。
 
 ```javascript
 var obj = {
@@ -172,7 +172,7 @@ var obj = {
 };
 ```
 
-ES6允许字面量定义对象时，用方法二（表达式）作为对象的属性名，即把表达式放在方括号内。
+ES6 允许字面量定义对象时，用方法二（表达式）作为对象的属性名，即把表达式放在方括号内。
 
 ```javascript
 let propKey = 'foo';
@@ -202,7 +202,7 @@ a['last word'] // "world"
 
 ```javascript
 let obj = {
-  ['h'+'ello']() {
+  ['h' + 'ello']() {
     return 'hi';
   }
 };
@@ -223,7 +223,23 @@ var foo = 'bar';
 var baz = { [foo]: 'abc'};
 ```
 
-## 方法的name属性
+注意，属性名表达式如果是一个对象，默认情况下会自动将对象转为字符串`[object Object]`，这一点要特别小心。
+
+```javascript
+const keyA = {a: 1};
+const keyB = {b: 2};
+
+const myObject = {
+  [keyA]: 'valueA',
+  [keyB]: 'valueB'
+};
+
+myObject // Object {[object Object]: "valueB"}
+```
+
+上面代码中，`[keyA]`和`[keyB]`得到的都是`[object Object]`，所以`[keyB]`会把`[keyA]`覆盖掉，而`myObject`最后只有一个`[object Object]`属性。
+
+## 方法的 name 属性
 
 函数的`name`属性，返回函数名。对象方法也是函数，因此也有`name`属性。
 
@@ -444,7 +460,7 @@ Object.assign([1, 2, 3], [4, 5])
 // [4, 5, 3]
 ```
 
-上面代码中，`Object.assign`把数组视为属性名为0、1、2的对象，因此目标数组的0号属性`4`覆盖了原数组的0号属性`1`。
+上面代码中，`Object.assign`把数组视为属性名为0、1、2的对象，因此源数组的0号属性`4`覆盖了目标数组的0号属性`1`。
 
 ### 常见用途
 
@@ -529,7 +545,7 @@ const DEFAULTS = {
 };
 
 function processContent(options) {
-  let options = Object.assign({}, DEFAULTS, options);
+  options = Object.assign({}, DEFAULTS, options);
 }
 ```
 
@@ -738,19 +754,19 @@ Object.getPrototypeOf(rec) === Rectangle.prototype
 // false
 ```
 
-## Object.values()，Object.entries()
+## Object.keys()，Object.values()，Object.entries()
 
 ### Object.keys()
 
-ES5引入了`Object.keys`方法，返回一个数组，成员是参数对象自身的（不含继承的）所有可遍历（enumerable）属性的键名。
+ES5 引入了`Object.keys`方法，返回一个数组，成员是参数对象自身的（不含继承的）所有可遍历（enumerable）属性的键名。
 
 ```javascript
-var obj = { foo: "bar", baz: 42 };
+var obj = { foo: 'bar', baz: 42 };
 Object.keys(obj)
 // ["foo", "baz"]
 ```
 
-目前，ES7有一个[提案](https://github.com/tc39/proposal-object-values-entries)，引入了跟`Object.keys`配套的`Object.values`和`Object.entries`。
+ES2017 [引入](https://github.com/tc39/proposal-object-values-entries)了跟`Object.keys`配套的`Object.values`和`Object.entries`，作为遍历一个对象的补充手段。
 
 ```javascript
 let {keys, values, entries} = Object;
@@ -774,7 +790,7 @@ for (let [key, value] of entries(obj)) {
 `Object.values`方法返回一个数组，成员是参数对象自身的（不含继承的）所有可遍历（enumerable）属性的键值。
 
 ```javascript
-var obj = { foo: "bar", baz: 42 };
+var obj = { foo: 'bar', baz: 42 };
 Object.values(obj)
 // ["bar", 42]
 ```
@@ -796,9 +812,9 @@ var obj = Object.create({}, {p: {value: 42}});
 Object.values(obj) // []
 ```
 
-上面代码中，`Object.create`方法的第二个参数添加的对象属性（属性`p`），如果不显式声明，默认是不可遍历的。`Object.values`不会返回这个属性。
+上面代码中，`Object.create`方法的第二个参数添加的对象属性（属性`p`），如果不显式声明，默认是不可遍历的，因为`p`是继承的属性，而不是对象自身的属性。`Object.values`不会返回这个属性。
 
-`Object.values`会过滤属性名为Symbol值的属性。
+`Object.values`会过滤属性名为 Symbol 值的属性。
 
 ```javascript
 Object.values({ [Symbol()]: 123, foo: 'abc' });
@@ -883,11 +899,11 @@ function entries(obj) {
 
 ## 对象的扩展运算符
 
-目前，ES7有一个[提案](https://github.com/sebmarkbage/ecmascript-rest-spread)，将Rest解构赋值/扩展运算符（...）引入对象。Babel转码器已经支持这项功能。
+目前，ES7有一个[提案](https://github.com/sebmarkbage/ecmascript-rest-spread)，将Rest运算符（解构赋值）/扩展运算符（`...`）引入对象。Babel转码器已经支持这项功能。
 
-**（1）Rest解构赋值**
+**（1）解构赋值**
 
-对象的Rest解构赋值用于从一个对象取值，相当于将所有可遍历的、但尚未被读取的属性，分配到指定的对象上面。所有的键和它们的值，都会拷贝到新对象上面。
+对象的解构赋值用于从一个对象取值，相当于将所有可遍历的、但尚未被读取的属性，分配到指定的对象上面。所有的键和它们的值，都会拷贝到新对象上面。
 
 ```javascript
 let { x, y, ...z } = { x: 1, y: 2, a: 3, b: 4 };
@@ -896,25 +912,25 @@ y // 2
 z // { a: 3, b: 4 }
 ```
 
-上面代码中，变量`z`是Rest解构赋值所在的对象。它获取等号右边的所有尚未读取的键（`a`和`b`），将它们和它们的值拷贝过来。
+上面代码中，变量`z`是解构赋值所在的对象。它获取等号右边的所有尚未读取的键（`a`和`b`），将它们连同值一起拷贝过来。
 
-由于Rest解构赋值要求等号右边是一个对象，所以如果等号右边是`undefined`或`null`，就会报错，因为它们无法转为对象。
+由于解构赋值要求等号右边是一个对象，所以如果等号右边是`undefined`或`null`，就会报错，因为它们无法转为对象。
 
 ```javascript
 let { x, y, ...z } = null; // 运行时错误
 let { x, y, ...z } = undefined; // 运行时错误
 ```
 
-Rest解构赋值必须是最后一个参数，否则会报错。
+解构赋值必须是最后一个参数，否则会报错。
 
 ```javascript
 let { ...x, y, z } = obj; // 句法错误
 let { x, ...y, ...z } = obj; // 句法错误
 ```
 
-上面代码中，Rest解构赋值不是最后一个参数，所以会报错。
+上面代码中，解构赋值不是最后一个参数，所以会报错。
 
-注意，Rest解构赋值的拷贝是浅拷贝，即如果一个键的值是复合类型的值（数组、对象、函数）、那么Rest解构赋值拷贝的是这个值的引用，而不是这个值的副本。
+注意，解构赋值的拷贝是浅拷贝，即如果一个键的值是复合类型的值（数组、对象、函数）、那么解构赋值拷贝的是这个值的引用，而不是这个值的副本。
 
 ```javascript
 let obj = { a: { b: 1 } };
@@ -923,9 +939,9 @@ obj.a.b = 2;
 x.a.b // 2
 ```
 
-上面代码中，`x`是Rest解构赋值所在的对象，拷贝了对象`obj`的`a`属性。`a`属性引用了一个对象，修改这个对象的值，会影响到Rest解构赋值对它的引用。
+上面代码中，`x`是解构赋值所在的对象，拷贝了对象`obj`的`a`属性。`a`属性引用了一个对象，修改这个对象的值，会影响到解构赋值对它的引用。
 
-另外，Rest解构赋值不会拷贝继承自原型对象的属性。
+另外，解构赋值不会拷贝继承自原型对象的属性。
 
 ```javascript
 let o1 = { a: 1 };
@@ -949,9 +965,9 @@ y // undefined
 z // 3
 ```
 
-上面代码中，变量`x`是单纯的解构赋值，所以可以读取继承的属性；Rest解构赋值产生的变量`y`和`z`，只能读取对象自身的属性，所以只有变量`z`可以赋值成功。
+上面代码中，变量`x`是单纯的解构赋值，所以可以读取继承的属性；解构赋值产生的变量`y`和`z`，只能读取对象自身的属性，所以只有变量`z`可以赋值成功。
 
-Rest解构赋值的一个用处，是扩展某个函数的参数，引入其他操作。
+解构赋值的一个用处，是扩展某个函数的参数，引入其他操作。
 
 ```javascript
 function baseFunction({ a, b }) {

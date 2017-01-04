@@ -133,7 +133,7 @@ codePointLength(s) // 2
 
 **（5）i修饰符**
 
-有些Unicode字符的编码不同，但是字型很相近，比如，`\u004B`与`\u212A`都是大写的K。
+有些Unicode字符的编码不同，但是字型很相近，比如，`\u004B`与`\u212A`都是大写的`K`。
 
 ```javascript
 /[a-z]/i.test('\u212A') // false
@@ -142,7 +142,7 @@ codePointLength(s) // 2
 
 上面代码中，不加`u`修饰符，就无法识别非规范的K字符。
 
-## y修饰符
+## y 修饰符
 
 除了`u`修饰符，ES6还为正则表达式添加了`y`修饰符，叫做“粘连”（sticky）修饰符。
 
@@ -366,6 +366,51 @@ escape('hi. how are you?');
 // "hi\\. how are you\\?"
 ```
 
+## s 修饰符：dotAll 模式
+
+正则表达式中，点（`.`）是一个特殊字符，代表任意的单个字符，但是行终止符（line terminator character）除外。
+
+以下四个字符属于”行终止符“。
+
+- U+000A 换行符（`\n`）
+- U+000D 回车符（`\r`）
+- U+2028 行分隔符（line separator）
+- U+2029 段分隔符（paragraph separator）
+
+```javascript
+/foo.bar/.test('foo\nbar')
+// false
+```
+
+上面代码中，因为`.`不匹配`\n`，所以正则表达式返回`false`。
+
+但是，很多时候我们希望匹配的是任意单个字符，这时有一种变通的写法。
+
+```javascript
+/foo[^]bar/.test('foo\nbar')
+// true
+```
+
+这种解决方案毕竟不太符合直觉，所以现在有一个[提案](https://github.com/mathiasbynens/es-regexp-dotall-flag)，引入`/s`修饰符，使得`.`可以匹配任意单个字符。
+
+```javascript
+/foo.bar/s.test('foo\nbar') // true
+```
+
+这被称为`dotAll`模式，即点（dot）代表一切字符。所以，正则表达式还引入了一个`dotAll`属性，返回一个布尔值，表示该正则表达式是否处在`dotAll`模式。
+
+```javascript
+const re = /foo.bar/s;
+// 另一种写法
+// const re = new RegExp('foo.bar', 's');
+
+re.test('foo\nbar') // true
+re.dotAll // true
+re.flags // 's'
+```
+
+`/s`修饰符和多行修饰符`/m`不冲突，两者一起使用的情况下，`.`匹配所有字符，而`^`和`$`匹配每一行的行首和行尾。
+
 ## 后行断言
 
 JavaScript语言的正则表达式，只支持先行断言（lookahead）和先行否定断言（negative lookahead），不支持后行断言（lookbehind）和后行否定断言（negative lookbehind）。
@@ -409,3 +454,64 @@ JavaScript语言的正则表达式，只支持先行断言（lookahead）和先�
 ```
 
 上面代码中，如果后行断言的反斜杠引用（`\1`）放在括号的后面，就不会得到匹配结果，必须放在前面才可以。
+
+## Unicode属性类
+
+目前，有一个[提案](https://github.com/mathiasbynens/es-regexp-unicode-property-escapes)，引入了一种新的类的写法`\p{...}`和`\P{...}`，允许正则表达式匹配符合Unicode某种属性的所有字符。
+
+```javascript
+const regexGreekSymbol = /\p{Script=Greek}/u;
+regexGreekSymbol.test('π') // u
+```
+
+上面代码中，`\p{Script=Greek}`指定匹配一个希腊文字母，所以匹配`π`成功。
+
+Unicode属性类要指定属性名和属性值。
+
+```javascript
+\p{UnicodePropertyName=UnicodePropertyValue}
+```
+
+对于某些属性，可以只写属性名。
+
+```javascript
+\p{UnicodePropertyName}
+```
+
+`\P{…}`是`\p{…}`的反向匹配，即匹配不满足条件的字符。
+
+注意，这两种类只对Unicode有效，所以使用的时候一定要加上`u`修饰符。如果不加`u`修饰符，正则表达式使用`\p`和`\P`会报错，ECMAScript预留了这两个类。
+
+由于Unicode的各种属性非常多，所以这种新的类的表达能力非常强。
+
+```javascript
+const regex = /^\p{Decimal_Number}+$/u;
+regex.test('𝟏𝟐𝟑𝟜𝟝𝟞𝟩𝟪𝟫𝟬𝟭𝟮𝟯𝟺𝟻𝟼') // true
+```
+
+上面代码中，属性类指定匹配所有十进制字符，可以看到各种字型的十进制字符都会匹配成功。
+
+`\p{Number}`甚至能匹配罗马数字。
+
+```javascript
+// 匹配所有数字
+const regex = /^\p{Number}+$/u;
+regex.test('²³¹¼½¾') // true
+regex.test('㉛㉜㉝') // true
+regex.test('ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫ') // true
+```
+
+下面是其他一些例子。
+
+```javascript
+// 匹配各种文字的所有字母，等同于Unicode版的\w
+[\p{Alphabetic}\p{Mark}\p{Decimal_Number}\p{Connector_Punctuation}\p{Join_Control}]
+
+// 匹配各种文字的所有非字母的字符，等同于Unicode版的\W
+[\p{Alphabetic}\p{Mark}\p{Decimal_Number}\p{Connector_Punctuation}\p{Join_Control}]
+
+// 匹配所有的箭头字符
+const regexArrows = /^\p{Block=Arrows}+$/u;
+regexArrows.test('←↑→↓↔↕↖↗↘↙⇏⇐⇑⇒⇓⇔⇕⇖⇗⇘⇙⇧⇩') // true
+```
+

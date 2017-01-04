@@ -266,7 +266,7 @@ p1.__proto__ === p2.__proto__
 //true
 ```
 
-上面代码中，`p1`和`p2`都是Point的实例，它们的原型都是Point，所以`__proto__`属性是相等的。
+上面代码中，`p1`和`p2`都是Point的实例，它们的原型都是Point.prototype，所以`__proto__`属性是相等的。
 
 这也意味着，可以通过实例的`__proto__`属性为Class添加方法。
 
@@ -294,7 +294,7 @@ new Foo(); // ReferenceError
 class Foo {}
 ```
 
-上面代码中，`Foo`类使用在前，定义在后，这样会报错，因为ES6不会把变量声明提升到代码头部。这种规定的原因与下文要提到的继承有关，必须保证子类在父类之后定义。
+上面代码中，`Foo`类使用在前，定义在后，这样会报错，因为ES6不会把类的声明提升到代码头部。这种规定的原因与下文要提到的继承有关，必须保证子类在父类之后定义。
 
 ```javascript
 {
@@ -304,11 +304,11 @@ class Foo {}
 }
 ```
 
-上面的代码不会报错，因为`class`继承`Foo`的时候，`Foo`已经有定义了。但是，如果存在Class的提升，上面代码就会报错，因为`class`会被提升到代码头部，而`let`命令是不提升的，所以导致`class`继承`Foo`的时候，`Foo`还没有定义。
+上面的代码不会报错，因为`Bar`继承`Foo`的时候，`Foo`已经有定义了。但是，如果存在`class`的提升，上面代码就会报错，因为`class`会被提升到代码头部，而`let`命令是不提升的，所以导致`Bar`继承`Foo`的时候，`Foo`还没有定义。
 
 ### Class表达式
 
-与函数一样，Class也可以使用表达式的形式定义。
+与函数一样，类也可以使用表达式的形式定义。
 
 ```javascript
 const MyClass = class Me {
@@ -328,7 +328,7 @@ Me.name // ReferenceError: Me is not defined
 
 上面代码表示，`Me`只在Class内部有定义。
 
-如果Class内部没用到的话，可以省略`Me`，也就是可以写成下面的形式。
+如果类的内部没用到的话，可以省略`Me`，也就是可以写成下面的形式。
 
 ```javascript
 const MyClass = class { /* ... */ };
@@ -350,7 +350,7 @@ let person = new class {
 person.sayName(); // "张三"
 ```
 
-上面代码中，person是一个立即执行的Class的实例。
+上面代码中，`person`是一个立即执行的类的实例。
 
 ### 私有方法
 
@@ -395,16 +395,16 @@ function bar(baz) {
 
 上面代码中，`foo`是公有方法，内部调用了`bar.call(this, baz)`。这使得`bar`实际上成为了当前模块的私有方法。
 
-还有一种方法是利用`Symbol`值的唯一性，将私有方法的名字命名为一个Symbol值。
+还有一种方法是利用`Symbol`值的唯一性，将私有方法的名字命名为一个`Symbol`值。
 
 ```javascript
 const bar = Symbol('bar');
 const snaf = Symbol('snaf');
 
-export default subclassFactory({
+export default class myClass{
 
-  // 共有方法
-  foo (baz) {
+  // 公有方法
+  foo(baz) {
     this[bar](baz);
   }
 
@@ -414,10 +414,82 @@ export default subclassFactory({
   }
 
   // ...
-});
+};
 ```
 
-上面代码中，`bar`和`snaf`都是Symbol值，导致第三方无法获取到它们，因此达到了私有方法和私有属性的效果。
+上面代码中，`bar`和`snaf`都是`Symbol`值，导致第三方无法获取到它们，因此达到了私有方法和私有属性的效果。
+
+### this的指向
+
+类的方法内部如果含有`this`，它默认指向类的实例。但是，必须非常小心，一旦单独使用该方法，很可能报错。
+
+```javascript
+class Logger {
+  printName(name = 'there') {
+    this.print(`Hello ${name}`);
+  }
+
+  print(text) {
+    console.log(text);
+  }
+}
+
+const logger = new Logger();
+const { printName } = logger;
+printName(); // TypeError: Cannot read property 'print' of undefined
+```
+
+上面代码中，`printName`方法中的`this`，默认指向`Logger`类的实例。但是，如果将这个方法提取出来单独使用，`this`会指向该方法运行时所在的环境，因为找不到`print`方法而导致报错。
+
+一个比较简单的解决方法是，在构造方法中绑定`this`，这样就不会找不到`print`方法了。
+
+```javascript
+class Logger {
+  constructor() {
+    this.printName = this.printName.bind(this);
+  }
+
+  // ...
+}
+```
+
+另一种解决方法是使用箭头函数。
+
+```javascript
+class Logger {
+  constructor() {
+    this.printName = (name = 'there') => {
+      this.print(`Hello ${name}`);
+    };
+  }
+
+  // ...
+}
+```
+
+还有一种解决方法是使用`Proxy`，获取方法的时候，自动绑定`this`。
+
+```javascript
+function selfish (target) {
+  const cache = new WeakMap();
+  const handler = {
+    get (target, key) {
+      const value = Reflect.get(target, key);
+      if (typeof value !== 'function') {
+        return value;
+      }
+      if (!cache.has(value)) {
+        cache.set(value, value.bind(target));
+      }
+      return cache.get(value);
+    }
+  };
+  const proxy = new Proxy(target, handler);
+  return proxy;
+}
+
+const logger = selfish(new Logger());
+```
 
 ### 严格模式
 
@@ -427,7 +499,7 @@ export default subclassFactory({
 
 ### name属性
 
-由于本质上，ES6的Class只是ES5的构造函数的一层包装，所以函数的许多特性都被Class继承，包括`name`属性。
+由于本质上，ES6的类只是ES5的构造函数的一层包装，所以函数的许多特性都被`Class`继承，包括`name`属性。
 
 ```javascript
 class Point {}
@@ -552,9 +624,11 @@ class B {
 
 // B的实例继承A的实例
 Object.setPrototypeOf(B.prototype, A.prototype);
+const b = new B();
 
-// B继承A的静态属性
+// B的实例继承A的静态属性
 Object.setPrototypeOf(B, A);
+const b = new B();
 ```
 
 《对象的扩展》一章给出过`Object.setPrototypeOf`方法的实现。
@@ -652,28 +726,200 @@ Object.getPrototypeOf(ColorPoint) === Point
 
 因此，可以使用这个方法判断，一个类是否继承了另一个类。
 
-### super关键字
+### super 关键字
 
-`super`这个关键字，有两种用法，含义不同。
+`super`这个关键字，既可以当作函数使用，也可以当作对象使用。在这两种情况下，它的用法完全不同。
 
-（1）作为函数调用时（即`super(...args)`），`super`代表父类的构造函数。
-
-（2）作为对象调用时（即`super.prop`或`super.method()`），`super`代表父类。注意，此时`super`即可以引用父类实例的属性和方法，也可以引用父类的静态方法。
+第一种情况，`super`作为函数调用时，代表父类的构造函数。ES6 要求，子类的构造函数必须执行一次`super`函数。
 
 ```javascript
+class A {}
+
 class B extends A {
-  get m() {
-    return this._p * super._p;
-  }
-  set m() {
-    throw new Error('该属性只读');
+  constructor() {
+    super();
   }
 }
 ```
 
-上面代码中，子类通过`super`关键字，调用父类实例的`_p`属性。
+上面代码中，子类`B`的构造函数之中的`super()`，代表调用父类的构造函数。这是必须的，否则 JavaScript 引擎会报错。
 
-由于，对象总是继承其他对象的，所以可以在任意一个对象中，使用`super`关键字。
+注意，`super`虽然代表了父类`A`的构造函数，但是返回的是子类`B`的实例，即`super`内部的`this`指的是`B`，因此`super()`在这里相当于`A.prototype.constructor.call(this)`。
+
+```javascript
+class A {
+  constructor() {
+    console.log(new.target.name);
+  }
+}
+class B extends A {
+  constructor() {
+    super();
+  }
+}
+new A() // A
+new B() // B
+```
+
+上面代码中，`new.target`指向当前正在执行的函数。可以看到，在`super()`执行时，它指向的是子类`B`的构造函数，而不是父类`A`的构造函数。也就是说，`super()`内部的`this`指向的是`B`。
+
+作为函数时，`super()`只能用在子类的构造函数之中，用在其他地方就会报错。
+
+```javascript
+class A {}
+
+class B extends A {
+  m() {
+    super(); // 报错
+  }
+}
+```
+
+上面代码中，`super()`用在`B`类的`m`方法之中，就会造成句法错误。
+
+第二种情况，`super`作为对象时，指向父类的原型对象。
+
+```javascript
+class A {
+  p() {
+    return 2;
+  }
+}
+
+class B extends A {
+  constructor() {
+    super();
+    console.log(super.p()); // 2
+  }
+}
+
+let b = new B();
+```
+
+上面代码中，子类`B`当中的`super.p()`，就是将`super`当作一个对象使用。这时，`super`指向`A.prototype`，所以`super.p()`就相当于`A.prototype.p()`。
+
+这里需要注意，由于`super`指向父类的原型对象，所以定义在父类实例上的方法或属性，是无法通过`super`调用的。
+
+```javascript
+class A {
+  constructor() {
+    this.p = 2;
+  }
+}
+
+class B extends A {
+  get m() {
+    return super.p;
+  }
+}
+
+let b = new B();
+b.m // undefined
+```
+
+上面代码中，`p`是父类`A`实例的属性，`super.p`就引用不到它。
+
+如果属性定义在父类的原型对象上，`super`就可以取到。
+
+```javascript
+class A {}
+A.prototype.x = 2;
+
+class B extends A {
+  constructor() {
+    super();
+    console.log(super.x) // 2
+  }
+}
+
+let b = new B();
+```
+
+上面代码中，属性`x`是定义在`A.prototype`上面的，所以`super.x`可以取到它的值。
+
+ES6 规定，通过`super`调用父类的方法时，`super`会绑定子类的`this`。
+
+```javascript
+class A {
+  constructor() {
+    this.x = 1;
+  }
+  print() {
+    console.log(this.x);
+  }
+}
+
+class B extends A {
+  constructor() {
+    super();
+    this.x = 2;
+  }
+  m() {
+    super.print();
+  }
+}
+
+let b = new B();
+b.m() // 2
+```
+
+上面代码中，`super.print()`虽然调用的是`A.prototype.print()`，但是`A.prototype.print()`会绑定子类`B`的`this`，导致输出的是`2`，而不是`1`。也就是说，实际上执行的是`super.print.call(this)`。
+
+由于绑定子类的`this`，所以如果通过`super`对某个属性赋值，这时`super`就是`this`，赋值的属性会变成子类实例的属性。
+
+```javascript
+class A {
+  constructor() {
+    this.x = 1;
+  }
+}
+
+class B extends A {
+  constructor() {
+    super();
+    this.x = 2;
+    super.x = 3;
+    console.log(super.x); // undefined
+    console.log(this.x); // 3
+  }
+}
+
+let b = new B();
+```
+
+上面代码中，`super.x`赋值为`3`，这时等同于对`this.x`赋值为`3`。而当读取`super.x`的时候，读的是`A.prototype.x`，所以返回`undefined`。
+
+注意，使用`super`的时候，必须显式指定是作为函数、还是作为对象使用，否则会报错。
+
+```javascript
+class A {}
+
+class B extends A {
+  constructor() {
+    super();
+    console.log(super); // 报错
+  }
+}
+```
+
+上面代码中，`console.log(super)`当中的`super`，无法看出是作为函数使用，还是作为对象使用，所以 JavaScript 引擎解析代码的时候就会报错。这时，如果能清晰地表明`super`的数据类型，就不会报错。
+
+```javascript
+class A {}
+
+class B extends A {
+  constructor() {
+    super();
+    console.log(super.valueOf() instanceof B); // true
+  }
+}
+
+let b = new B();
+```
+
+上面代码中，`super.valueOf()`表明`super`是一个对象，因此就不会报错。同时，由于`super`绑定`B`的`this`，所以`super.valueOf()`返回的是一个`B`的实例。
+
+最后，由于对象总是继承其他对象的，所以可以在任意一个对象中，使用`super`关键字。
 
 ```javascript
 var obj = {

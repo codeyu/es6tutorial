@@ -166,7 +166,7 @@ Set结构的实例有四个遍历方法，可以用于遍历成员。
 
 **（1）`keys()`，`values()`，`entries()`**
 
-`key`方法、`value`方法、`entries`方法返回的都是遍历器对象（详见《Iterator对象》一章）。由于Set结构没有键名，只有键值（或者说键名和键值是同一个值），所以`key`方法和`value`方法的行为完全一致。
+`keys`方法、`values`方法、`entries`方法返回的都是遍历器对象（详见《Iterator 对象》一章）。由于 Set 结构没有键名，只有键值（或者说键名和键值是同一个值），所以`keys`方法和`values`方法的行为完全一致。
 
 ```javascript
 let set = new Set(['red', 'green', 'blue']);
@@ -412,9 +412,9 @@ data['[object HTMLDivElement]'] // "metadata"
 
 ```javascript
 var m = new Map();
-var o = {p: "Hello World"};
+var o = {p: 'Hello World'};
 
-m.set(o, "content")
+m.set(o, 'content')
 m.get(o) // "content"
 
 m.has(o) // true
@@ -427,7 +427,10 @@ m.has(o) // false
 作为构造函数，Map也可以接受一个数组作为参数。该数组的成员是一个个表示键值对的数组。
 
 ```javascript
-var map = new Map([['name', '张三'], ['title', 'Author']]);
+var map = new Map([
+  ['name', '张三'],
+  ['title', 'Author']
+]);
 
 map.size // 2
 map.has('name') // true
@@ -447,6 +450,18 @@ var items = [
 ];
 var map = new Map();
 items.forEach(([key, value]) => map.set(key, value));
+```
+
+下面的例子中，字符串`true`和布尔值`true`是两个不同的键。
+
+```javascript
+var m = new Map([
+  [true, 'foo'],
+  ['true', 'bar']
+]);
+
+m.get(true) // 'foo'
+m.get('true') // 'bar'
 ```
 
 如果对同一个键多次赋值，后面的值将覆盖前面的值。
@@ -501,7 +516,7 @@ map.get(k2) // 222
 
 由上可知，Map的键实际上是跟内存地址绑定的，只要内存地址不一样，就视为两个键。这就解决了同名属性碰撞（clash）的问题，我们扩展别人的库的时候，如果使用对象作为键名，就不用担心自己的属性与原作者的属性同名。
 
-如果Map的键是一个简单类型的值（数字、字符串、布尔值），则只要两个值严格相等，Map将其视为一个键，包括0和-0。另外，虽然NaN不严格相等于自身，但Map将其视为同一个键。
+如果Map的键是一个简单类型的值（数字、字符串、布尔值），则只要两个值严格相等，Map将其视为一个键，包括`0`和`-0`。另外，虽然`NaN`不严格相等于自身，但Map将其视为同一个键。
 
 ```javascript
 let map = new Map();
@@ -885,13 +900,12 @@ myWeakmap.set(myElement, {timesClicked: 0});
 myElement.addEventListener('click', function() {
   let logoData = myWeakmap.get(myElement);
   logoData.timesClicked++;
-  myWeakmap.set(myElement, logoData);
 }, false);
 ```
 
-上面代码中，`myElement`是一个DOM节点，每当发生click事件，就更新一下状态。我们将这个状态作为键值放在WeakMap里，对应的键名就是`myElement`。一旦这个DOM节点删除，该状态就会自动消失，不存在内存泄漏风险。
+上面代码中，`myElement`是一个 DOM 节点，每当发生`click`事件，就更新一下状态。我们将这个状态作为键值放在 WeakMap 里，对应的键名就是`myElement`。一旦这个 DOM 节点删除，该状态就会自动消失，不存在内存泄漏风险。
 
-WeakMap的另一个用处是部署私有属性。
+WeakMap 的另一个用处是部署私有属性。
 
 ```javascript
 let _counter = new WeakMap();
